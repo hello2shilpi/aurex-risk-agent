@@ -15,4 +15,4 @@ The page markup lives in ui/logs.html.
 
 from . import ROOT
 
-PAGE = (ROOT / "ui" / "logs.html").read_text()
+PAGE = (ROOT / "ui" / "logs.html").read_text(encoding='utf-8')

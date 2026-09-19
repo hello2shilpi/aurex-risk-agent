@@ -214,7 +214,7 @@ class Handler(BaseHTTPRequestHandler):
         pass                                        # quiet the request spam
 
 
-PAGE = (ROOT / "ui" / "chat.html").read_text()
+PAGE = (ROOT / "ui" / "chat.html").read_text(encoding='utf-8')
 
 PAGE = (PAGE.replace("__MODEL__", MODEL)
             .replace("__GREETING__", json.dumps(profile.GREETING)))
