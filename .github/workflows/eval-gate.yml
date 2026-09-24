@@ -1,0 +1,65 @@
+name: Eval Gate
+
+# The gate Balaji's brief asks for: no change to the agent ships unless the
+# frozen golden set (and the deterministic behaviour checks) still pass.
+#
+# Runs on every push and every pull request into main. Both suites always
+# run to completion (so a broken push shows the full picture in one log),
+# but the job fails — and a PR is blocked, once branch protection requires
+# this check — if either suite comes back with a failure.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  eval-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run deterministic behaviour checks (evals.py)
+        id: evals
+        working-directory: stage1
+        continue-on-error: true
+        run: python evals.py
+
+      - name: Run the golden set (golden.py)
+        id: golden
+        working-directory: stage1
+        continue-on-error: true
+        run: python golden.py
+
+      - name: Upload result files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: |
+            stage1/results/eval_results.json
+            stage1/results/golden_results.json
+
+      - name: Block the merge if either suite failed
+        if: steps.evals.outcome == 'failure' || steps.golden.outcome == 'failure'
+        run: |
+          echo "evals.py outcome:  ${{ steps.evals.outcome }}"
+          echo "golden.py outcome: ${{ steps.golden.outcome }}"
+          echo "One or both suites failed — see the logs above for which rows/cases and why."
+          exit 1
