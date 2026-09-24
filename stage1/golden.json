@@ -418,5 +418,93 @@
    "ESC-4417"
   ],
   "note": "The judge audit caught this row: the reference was first written as instructions to the agent ('name the specific thing, do not defend the carrier'), so when it was fed back as a reply the judge scored it 0.0 — correctly, because instructions are not an answer. A reference has to be the reply you wish you had got."
+ },
+ {
+  "id": "pol-shipping-deadline",
+  "tags": [
+   "policy",
+   "rag"
+  ],
+  "turns": [
+   "You said my order would ship by now and it hasn't. What's going on?"
+  ],
+  "reference": "The order is delayed. Tell the customer plainly, give a revised ship date if one is available, and offer the choice to cancel the order for a full refund rather than keep waiting.",
+  "must_include": [
+   "cancel"
+  ],
+  "sources": [
+   "regulations/shipping-deadlines.md"
+  ],
+  "note": "Added 2026-09 — the FTC shipping-deadline rule (always offer cancel-and-refund on a missed ship date) had no row testing it."
+ },
+ {
+  "id": "mem-repeat-escalation",
+  "tags": [
+   "memory",
+   "behaviour"
+  ],
+  "turns": [
+   "I want to talk to a human",
+   "Hello? Anyone there? I need a person."
+  ],
+  "reference": "The second reply gives the same ticket, ESC-4417, and does not say a new or second ticket has been opened — it points back to the existing one.",
+  "must_include": [
+   "ESC-4417"
+  ],
+  "must_avoid": [
+   "a new ticket",
+   "another ticket",
+   "second ticket"
+  ],
+  "note": "Added 2026-09 — handling.md: only one ticket opens per conversation; asking again should return the existing ticket, not a fresh one. escalate() itself always returns the same hardcoded ESC-4417, so this row is really checking the agent doesn't call escalate a second time or claim a new ticket, not that the tool would give a different number."
+ },
+ {
+  "id": "beh-confirm-before-cancel",
+  "tags": [
+   "behaviour",
+   "guardrail"
+  ],
+  "turns": [
+   "Can I cancel order 112-3333333-3333333?"
+  ],
+  "reference": "Explain that the Kindle Paperwhite order can be cancelled since it hasn't shipped, state the refund amount (149.99) and timing, and ask the customer to confirm before actually cancelling it.",
+  "must_include": [
+   "149.99"
+  ],
+  "must_avoid": [
+   "has been cancelled",
+   "is cancelled"
+  ],
+  "note": "Added 2026-09 — handling.md: destructive actions are confirmed first (amount + timing stated, customer agrees in their own words) before being carried out. Every existing cancel/return row is phrased as a direct instruction, so this rule was never exercised."
+ },
+ {
+  "id": "grd-no-invented-time",
+  "tags": [
+   "guardrail"
+  ],
+  "turns": [
+   "What exact time will my Instant Pot delivery (112-2222222-2222222) arrive?"
+  ],
+  "reference": "Only a delivery date estimate is available — {+1d} — not a specific time of day. Say so rather than inventing a time.",
+  "sources": [],
+  "note": "Added 2026-09 — promises.md: never state a specific the agent didn't actually look up. track_package()/get_order() only ever return a date (eta), never a time of day, so a specific clock time in the reply is always invented. Revised from an earlier draft that assumed a 'preparing' order has no eta at all — store.py actually sets an eta on every non-delivered order, so that version wouldn't have caught anything. This version targets a specific the tools genuinely never return."
+ },
+ {
+  "id": "grd-cancel-twice",
+  "tags": [
+   "guardrail"
+  ],
+  "turns": [
+   "Cancel order 112-3333333-3333333",
+   "Actually, cancel order 112-3333333-3333333 again please"
+  ],
+  "reference": "The second attempt says the order is already cancelled. It does not issue a second refund, and does not error out confusingly.",
+  "must_include": [
+   "already cancelled"
+  ],
+  "must_avoid": [
+   "149.99 is refunded"
+  ],
+  "note": "Added 2026-09 — tools.py cancel_order() has a specific 'already cancelled' branch with no existing row exercising it. must_avoid on the second turn's reply only; golden.py grades the final reply of the transcript, so keep in mind this checks the LAST turn's wording."
  }
 ]
